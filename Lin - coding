@@ -1,0 +1,213 @@
+import pyttsx3
+import speech_recognition as sr
+import datetime
+import wikipedia
+import webbrowser
+import os
+import os.path
+import smtplib
+import requests
+from bs4 import BeautifulSoup
+import pyautogui
+import sys
+from PyQt5 import QtWidgets,QtCore,QtGui
+from PyQt5.QtCore import QTimer,QTime,QDate,Qt
+from PyQt5.QtGui import QMovie
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.uic import loadUiType
+from rojer import Ui_MainWindow
+
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+#print(voices[0].id)
+engine.setProperty('voice',voices[0].id)
+engine.setProperty('rate', 200)
+
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if hour >= 0 and hour < 12:
+        speak("Good Morning!")
+    elif hour >= 12 and hour < 18:
+        speak("Good Afternoon!")
+    else:
+        speak("Good Evening!")
+    speak(" I  am  Lin  your  voice  assistant... How can I help you sir... ")
+
+
+def sendEmail(to, content):
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.login('alphabeardo1.0@gmail.com', 'Munn@21380')
+        server.sendmail('alphabeardo1.0@gmail.com', to, content)
+        server.close()
+
+class MainThread(QThread):
+
+    def __init__(self):
+        super(MainThread,self).__init__()
+
+
+    def run(self):
+        self.TaskExecution()
+
+    def takecommand(self):
+        # it takes input from microphone
+        r = sr.Recognizer()
+        with sr.Microphone() as source:
+            print("listening...")
+            r.pause_threshold = 1
+            audio = r.listen(source)
+
+            try:
+                print("recognizing...")
+                query = r.recognize_google(audio, language='en-in')
+                print(f"user said: {query}\n ")
+            except Exception as e:
+
+                print("say that again please...")
+                return "none"
+            return query.lower()
+
+
+    def TaskExecution(self):
+
+        wishMe()
+        while True:
+            self.query = self.takecommand()
+            if 'hello' in  self.query:
+                speak("Hello sir, I am jarvis.")
+                speak("your personal AI assistant")
+                speak("how may i help you")
+
+            elif 'how are you' in  self.query:
+                speak("I am fine sir!")
+
+            elif "activate how to do mode" in self.query:
+                speak("Sir The mode is activated please tell me what you want to know")
+                how = self.takecommand()
+                max_results = 1
+                how_to = search_wikihow(how, max_results)
+                assert len(how_to) == 1
+                how_to[0].print()
+                speak(how_to[0].summary)
+
+            elif 'send email' in self.query:
+                try:
+                    speak("what should i say?")
+                    content = self.takecommand()
+                    to = "virajsubh0311@gmail.com"
+                    sendEmail(to, content)
+                    speak("Email has been sent!")
+                except Exception as  e:
+                    print(e)
+                    speak("Sorry...I am not able to send the Email at the moment ")
+
+            elif 'on youtube' in  self.query:
+                self.query =  self.query.replace("jarvis","")
+                self.query =  self.query.replace("on youtube", "")
+                web = 'https://www.youtube.com/results?search_query= ' +  self.query
+                webbrowser.open(web)
+                speak("Task done!")
+
+            elif 'open google' in  self.query:
+                webbrowser.open("google.com")
+            elif 'open facebook' in  self.query:
+                webbrowser.open("facebook.com")
+
+            elif 'open instagram' in  self.query:
+                webbrowser.open("instagram.com")
+
+            elif 'open amazon' in  self.query:
+                webbrowser.open("amazon.com")
+            elif 'open flipkart' in self. query:
+                webbrowser.open("flipkart.in")
+            elif 'play music' in  self.query:
+                music_dir = 'E:\\songs'
+                songs = os.listdir(music_dir)
+                os.startfile(os.path.join(music_dir, songs[0]))
+
+            elif 'wikipedia' in  self.query:
+                speak('Searching Wikipedia...')
+                self.query =  self.query.replace("wikipedia", "")
+                results = wikipedia.summary(self.query, sentences=1)
+                speak("According to Wikipedia")
+                print(results)
+                speak(results)
+
+            elif 'volume up' in  self.query:
+                pyautogui.press("volumeup")
+
+            elif 'volume down' in  self.query:
+                pyautogui.press("volumedown")
+
+            elif 'volume mute' in  self.query:
+                pyautogui.press("volumemute")
+
+            elif "temperature" in  self.query:
+                search = "temperature in dhanbad"
+                url = f"https://www.google.com/search?q={search}"
+                r = requests.get(url)
+                data = BeautifulSoup(r.text, "html.parser")
+                temperature = data.find("div", class_="BNeawe").text
+                speak(f"current {search} is {temperature}")
+
+            elif 'the time' in self.query:
+                strTime = datetime.datetime.now().strftime("%H:%M:%S")
+                speak(f"Sir, the time is {strTime}")
+
+            elif 'open calculator' in self.query:
+                calculatorPath = "C:\\ProgramData\\Microsoft\\Windows\\start Menu\\Programs\\Accessories\\Calculator"
+                os.startfile(calculatorPath)
+            elif 'open notepad' in self.query:
+                notepadPath = "C:\\ProgramData\\Microsoft\\Windows\\start Menu\\Programs\\Accessories\\Notepad"
+                os.startfile(notepadPath)
+
+            elif 'you can sleep' in  self.query:
+                speak("Thanks for using me sir. Have a great day.")
+                sys.exit()
+
+
+
+startExecution = MainThread()
+
+class Main(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.ui.pushButton.clicked.connect(self.startTask)
+        self.ui.pushButton_2.clicked.connect(self.close)
+
+    def startTask(self):
+        self.ui.movie = QtGui.QMovie("E:/GUI/initial.gif")
+        self.ui.ingif.setMovie(self.ui.movie)
+        self.ui.movie.start()
+        self.ui.movie = QtGui.QMovie("E:/GUI/Jarvis_Gui (1).gif")
+        self.ui.maingif.setMovie(self.ui.movie)
+        self.ui.movie.start()
+
+        timer = QTimer(self)
+        timer.timeout.connect(self.showTime)
+        timer.start(5000)
+        startExecution.start()
+
+    def showTime(self):
+        current_time = QTime.currentTime()
+        current_date = QDate.currentDate()
+        label_time = current_time.toString('hh:mm:ss')
+        label_date = current_date.toString(Qt.ISODate)
+        self.ui.textBrowser.setText(label_date)
+        self.ui.textBrowser_2.setText(label_time)
+
+app = QApplication(sys.argv)
+jarvis = Main()
+jarvis.show()
+sys.exit(app.exec_())
